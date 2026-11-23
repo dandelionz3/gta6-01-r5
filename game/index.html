@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Marlin Cove — Open-World Crime Game</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: #1e1438;
+    font-family: 'Segoe UI', Arial, Helvetica, sans-serif; color: #fff; }
+  #game-canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+  #hud-root { position: fixed; inset: 0; pointer-events: none; z-index: 5; }
+  .hud { position: absolute; inset: 0; }
+  .panel { position: absolute; background: rgba(8, 12, 24, 0.82); border: 1px solid rgba(255, 217, 74, 0.55);
+    border-radius: 8px; padding: 8px 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.5); }
+  .mission { top: 12px; left: 12px; width: 330px; }
+  .m-num { font-size: 11px; letter-spacing: 2px; color: #ffd94a; font-weight: 700; }
+  .m-title { font-size: 22px; font-weight: 900; letter-spacing: 1px; color: #fff; }
+  .m-stage { font-size: 12px; color: #4ad4e8; font-weight: 700; }
+  .m-obj { font-size: 13px; color: #e8e8e8; margin-top: 2px; }
+  .m-next { font-size: 12px; color: #ffd94a; margin-top: 2px; }
+  .dispatch { top: 148px; left: 12px; width: 330px; }
+  .d-head { font-size: 12px; font-weight: 800; letter-spacing: 1px; color: #ff6a5a; margin-bottom: 4px; }
+  .unit { font-size: 12px; padding: 2px 0; border-top: 1px solid rgba(255,255,255,0.12); }
+  .unit b { color: #ffd94a; }
+  .unit span { float: right; color: #9ad4ff; }
+  .top-right { position: absolute; top: 12px; right: 12px; text-align: right; }
+  .stars { font-size: 26px; letter-spacing: 4px; color: #ffd94a; text-shadow: 0 0 8px rgba(0,0,0,0.8); }
+  .money { font-size: 26px; font-weight: 900; color: #7ad47a; text-shadow: 0 0 8px rgba(0,0,0,0.8); }
+  .clock { font-size: 16px; font-weight: 700; color: #fff; }
+  .rank { font-size: 12px; letter-spacing: 1px; color: #4ad4e8; font-weight: 700; }
+  .weapons { position: absolute; top: 150px; right: 12px; width: 190px; }
+  .wslot { background: rgba(8, 12, 24, 0.82); border: 1px solid rgba(255,255,255,0.25);
+    border-radius: 5px; padding: 4px 8px; margin-bottom: 4px; font-size: 12px; font-weight: 700; }
+  .wslot b { color: #ffd94a; margin-right: 6px; }
+  .wslot .ammo { float: right; color: #9ad4ff; }
+  .wslot.active { border-color: #ffd94a; background: rgba(80, 60, 0, 0.85); }
+  .wslot.locked { opacity: 0.55; }
+  .bottom-left { position: absolute; left: 12px; bottom: 12px; }
+  .minimap { width: 190px; height: 190px; border: 2px solid rgba(255, 217, 74, 0.7);
+    border-radius: 50%; background: rgba(10, 14, 24, 0.85); display: block; }
+  .district { font-size: 15px; font-weight: 900; letter-spacing: 1px; margin-top: 6px;
+    text-shadow: 0 1px 4px #000; }
+  .standing { font-size: 12px; color: #ffd94a; text-shadow: 0 1px 4px #000; }
+  .bottom-right { position: absolute; right: 12px; bottom: 12px; width: 240px; text-align: right; }
+  .bar { position: relative; height: 18px; background: rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.4);
+    border-radius: 4px; margin-bottom: 5px; overflow: hidden; }
+  .bar i { display: block; height: 100%; }
+  .bar span { position: absolute; inset: 0; font-size: 11px; font-weight: 800; line-height: 18px;
+    text-align: center; letter-spacing: 1px; }
+  .bar.health i { background: linear-gradient(90deg, #2ad47a, #7ae8a0); }
+  .bar.armour i { background: linear-gradient(90deg, #2a7fd4, #7ab8e8); }
+  .bar.respect i { background: linear-gradient(90deg, #d47a2a, #ffd94a); }
+  .bar.damage i { background: linear-gradient(90deg, #d42a2a, #ff7a5a); }
+  .speed { font-size: 44px; font-weight: 900; line-height: 1; text-shadow: 0 2px 8px #000; }
+  .speed-unit { font-size: 12px; font-weight: 700; color: #ffd94a; letter-spacing: 1px; }
+  .car-name { font-size: 15px; font-weight: 800; margin-top: 2px; text-shadow: 0 1px 4px #000; }
+  .dialogue { left: 50%; transform: translateX(-50%); bottom: 12px; width: 560px; display: flex;
+    gap: 10px; align-items: center; }
+  .portrait { width: 52px; height: 52px; border-radius: 6px; background: #e8b04a; color: #111;
+    font-size: 20px; font-weight: 900; display: flex; align-items: center; justify-content: center; flex: none; }
+  .d-name { font-size: 14px; font-weight: 900; color: #ffd94a; letter-spacing: 1px; }
+  .d-role { font-size: 11px; color: #9ad4ff; }
+  .d-line { font-size: 14px; color: #fff; margin-top: 2px; font-style: italic; }
+  .radio { position: absolute; bottom: 118px; left: 50%; transform: translateX(-50%);
+    font-size: 12px; font-weight: 700; color: #e8e8e8; background: rgba(8,12,24,0.7);
+    padding: 3px 10px; border-radius: 12px; white-space: nowrap; }
+  .toast { position: absolute; top: 46%; left: 50%; transform: translateX(-50%);
+    font-size: 17px; font-weight: 800; color: #ffd94a; text-shadow: 0 2px 6px #000;
+    opacity: 0; transition: opacity 0.3s; text-align: center; white-space: nowrap; }
+  .center-screen { position: absolute; inset: 0; display: none; flex-direction: column;
+    align-items: center; justify-content: center; background: rgba(0,0,0,0.55); text-align: center; }
+  .center-screen h1 { font-size: 64px; font-weight: 900; letter-spacing: 6px; color: #ff4444;
+    text-shadow: 0 4px 16px #000; }
+  .center-screen p { font-size: 18px; margin-top: 8px; max-width: 640px; }
+  .objective-flash { display: none; }
+  .menu { position: fixed; inset: 0; z-index: 10; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; text-align: center;
+    background: linear-gradient(180deg, rgba(30,20,56,0.88), rgba(10,8,24,0.92)); pointer-events: auto; }
+  .game-title { font-size: 72px; font-weight: 900; letter-spacing: 8px; color: #ffd94a;
+    text-shadow: 0 4px 0 #b3541e, 0 8px 24px rgba(0,0,0,0.8); }
+  .game-sub { font-size: 16px; color: #e8e8e8; margin: 6px 0 18px; }
+  .menu-body { max-width: 640px; font-size: 14px; line-height: 1.6; color: #ddd; }
+  .menu-body p { margin-bottom: 10px; }
+  .menu-body textarea { width: 100%; background: #111; color: #9ad4ff; border: 1px solid #555;
+    border-radius: 4px; padding: 6px; font-size: 11px; }
+  .menu-buttons { margin-top: 14px; display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+  .menu-btn { pointer-events: auto; cursor: pointer; font-size: 15px; font-weight: 800;
+    letter-spacing: 1px; color: #111; background: #ffd94a; border: none; border-radius: 6px;
+    padding: 11px 22px; }
+  .menu-btn:hover { background: #ffe27a; }
+  #hud-root .hud { pointer-events: none; }
+  body.shot .menu { display: none !important; }
+</style>
+</head>
+<body>
+<canvas id="game-canvas"></canvas>
+<div id="hud-root"></div>
+<script src="three.min.js"></script>
+<script src="data.js"></script>
+<script src="world.js"></script>
+<script src="audio.js"></script>
+<script src="hud.js"></script>
+<script src="game.js"></script>
+</body>
+</html>
